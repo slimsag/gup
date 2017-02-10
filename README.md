@@ -67,7 +67,7 @@ The very first time you get started out with Gup, you'll want to create your "fi
 ```bash
 $ go build -o gup/bin/myprogram-latest ./example/
 $ gup bundle gup/bin/myprogram-latest
-wrote replacement patch bundle: gup/main-0.tgz
+wrote replacement patch bundle: gup/main-darwin-amd64-0.tgz
 wrote index: gup/index.json
 ...
 ```
@@ -86,7 +86,7 @@ To release a new version of your application, you'll create a patch using `gup p
 $ mv gup/bin/myprogram-latest gup/bin/myprogram-prev
 $ go build -o gup/bin/myprogram-latest ./example/
 $ gup bundle ./gup/bin/myprogram-prev ./gup/bin/myprogram-latest 
-wrote diff patch bundle: gup/main-1.tgz
+wrote diff patch bundle: gup/main-darwin-amd64-1.tgz
 updated index: gup/index.json
 ```
 
@@ -108,7 +108,7 @@ And you'll see:
 ```
 $ ./myprogram-old 
 an update is available!
-2017/02/09 17:55:50 applying update main-1.tgz
+2017/02/09 17:55:50 applying update main-darwin-amd64-1.tgz
 update successful, please relaunch the program
 ```
 
@@ -121,12 +121,11 @@ MyApp started!
 
 ## Notes
 
-- Gup doesn't yet fully support tags ('release branches'), it can represent them internally but the API has not been created yet. It can support them in a future update, though.
 - You should backup _at least_ `private_key.pem`, `gup/index.json`, and your 'latest' binary (e.g. `gup/bin/myprogram-latest`).
   - Failure to do this means you will no longer be able to publish updates, as Gup needs all three of these to successfully publish a new update. 
 - In a real application, you should use a higher `gup.Config.CheckInterval`, e.g. `5 * time.Minute`.
 - While the above shows commands for Google Cloud Storage, any HTTPS file host will do.
-- Gup patch bundle files (e.g. `main-0.tgz`) are designed to be easily introspected, e.g. try `tar -xzf -C tmp/ main-0.tgz`.
+- Gup patch bundle files (e.g. `main-darwin-amd64-0.tgz`) are designed to be easily introspected, e.g. try `tar -xzf -C tmp/ main-darwin-amd64-0.tgz`.
 - The above didn't cover _replacement_ patches, which are different than the default binary patch mode. See `gup bundle -h` for details.
 - When uploading files, you do not want to overwrite the entire directory (i.e. you want to keep old `.tgz` files that are in the directory). Also be aware of how your file host caches `index.json` as that will affect your application's ability to discover updates quickly.
 

@@ -13,6 +13,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"go/build"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -376,7 +377,12 @@ func (v IndexVersions) FindCurrentVersion(x string) (*IndexVersion, int) {
 	return nil, 0
 }
 
-// UpdateFIlename returns the update filename for the specified tag and version.
+// UpdateFilename returns the update filename for the specified tag and version.
 func UpdateFilename(tag string, versionIndex int) string {
 	return fmt.Sprintf("%s-%d.tgz", tag, versionIndex)
+}
+
+// ExpandTag expands a tag for usage in an index.json file.
+func ExpandTag(tag string) string {
+	return fmt.Sprintf("%s-%s-%s", tag, build.Default.GOOS, build.Default.GOARCH)
 }

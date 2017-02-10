@@ -21,8 +21,6 @@ import (
 	"github.com/slimsag/gup/guputil"
 )
 
-const mainTag = "main"
-
 var commands = map[string]*flag.FlagSet{}
 
 func main() {
@@ -64,6 +62,9 @@ overview:
 flags:
   -private-key="private_key.pem"
 
+  -tag="main" specifies a tag to use for the bundle, e.g. "main", "beta",
+              "alpha", "wow".
+
   -replacement=false specifies whether or not to generate a full-binary
                      replacement bundle instead of a binary diff bundle. This
                      should be used if e.g. the entire binary has changed, or
@@ -73,6 +74,7 @@ flags:
 	}
 	bundleReplacement := commands["bundle"].Bool("replacement", false, "generate a full-binary replacement bundle instead of a binary diff")
 	bundlePrivateKey := commands["bundle"].String("private-key", "private_key.pem", "the private key file")
+	bundleTag := commands["bundle"].String("tag", "main", "tag to use for the bundle")
 
 	commands["patch"] = flag.NewFlagSet("gup patch", flag.ExitOnError)
 	commands["patch"].Usage = func() {
@@ -80,6 +82,9 @@ flags:
 
 flags:
   -public-key="public_key.pem"
+
+  -tag="main" specifies the tag to look for in the index. See 'gup bundle' for
+              details.
 
   -single="" specifies a single patch.tgz file to apply, instead of using the
              default behavior (looking at the index.json and patching to the
@@ -89,6 +94,7 @@ flags:
 	}
 	patchSingle := commands["patch"].String("single", "", "a specific patch.tgz file to apply")
 	patchPublicKey := commands["patch"].String("public-key", "public_key.pem", "the public key file")
+	patchTag := commands["patch"].String("tag", "main", "tag to look for in the index")
 
 	commands["bsdiff"] = flag.NewFlagSet("gup bsdiff", flag.ExitOnError)
 	commands["bsdiff"].Usage = func() {
@@ -161,6 +167,7 @@ flags:
 			os.Exit(2)
 		}
 		key := parsePrivateKey(*bundlePrivateKey)
+		tag := guputil.ExpandTag(*bundleTag)
 		switch len(cmd.Args()) {
 		case 1:
 			// TODO(slimsag): optionally parametrize
@@ -172,7 +179,7 @@ flags:
 			handleErr(err)
 			defer new.Close()
 
-			outFile := filepath.Join("gup", guputil.UpdateFilename(mainTag, 0)) // TODO(slimsag): optionally parametrize?
+			outFile := filepath.Join("gup", guputil.UpdateFilename(tag, 0)) // TODO(slimsag): optionally parametrize?
 			out, err := os.Create(outFile)
 			handleErr(err)
 			defer out.Close()
@@ -184,7 +191,7 @@ flags:
 
 			index := &guputil.Index{
 				Tags: map[string]*guputil.IndexVersions{
-					mainTag: &guputil.IndexVersions{
+					tag: &guputil.IndexVersions{
 						List: []guputil.IndexVersion{{
 							From:        bundle.Checksum,
 							To:          bundle.Checksum,
@@ -216,8 +223,8 @@ flags:
 			handleErr(err)
 			defer new.Close()
 
-			versionIndex := len(index.Tags[mainTag].List)
-			outFile := filepath.Join("gup", guputil.UpdateFilename(mainTag, versionIndex)) // TODO(slimsag): optionally parametrize?
+			versionIndex := len(index.Tags[tag].List)
+			outFile := filepath.Join("gup", guputil.UpdateFilename(tag, versionIndex)) // TODO(slimsag): optionally parametrize?
 			out, err := os.Create(outFile)
 			handleErr(err)
 			defer out.Close()
@@ -238,7 +245,7 @@ flags:
 			if oldChecksum == bundle.Checksum {
 				handleErr(errors.New("error updating index; [old] and [new] are identical"))
 			}
-			index.Tags[mainTag].List = append(index.Tags[mainTag].List, guputil.IndexVersion{
+			index.Tags[tag].List = append(index.Tags[tag].List, guputil.IndexVersion{
 				From:        oldChecksum,
 				To:          bundle.Checksum,
 				Replacement: *bundleReplacement,
@@ -293,15 +300,17 @@ flags:
 			err = json.NewDecoder(indexFile).Decode(&index)
 			handleErr(err)
 
+			tag := guputil.ExpandTag(*patchTag)
+
 			for {
 				oldChecksum, err := guputil.Checksum(bytes.NewReader(old))
 				handleErr(err)
-				version, versionIndex := index.Tags[mainTag].FindNextVersion(oldChecksum)
+				version, versionIndex := index.Tags[tag].FindNextVersion(oldChecksum)
 				if version == nil {
 					log.Println("at latest version")
 					break
 				}
-				updateFile := filepath.Join("gup", guputil.UpdateFilename(mainTag, versionIndex))
+				updateFile := filepath.Join("gup", guputil.UpdateFilename(tag, versionIndex))
 				in, err := os.Open(updateFile) // TODO(slimsag): make relative to index.json
 				handleErr(err)
 

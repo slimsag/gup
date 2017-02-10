@@ -29,12 +29,18 @@ var Config = struct {
 	// against the signature file in a gup bundle.
 	PublicKey string
 
+	// Tag, which defaults to "main", specifies the tag to use when looking for
+	// updates. If the tag is invalid (i.e. not in index.json) updates will
+	// fail.
+	Tag string
+
 	// CheckInterval is the interval at which updates are checked for while the
 	// program is running. Zero signals to not check for updates while the
 	// program is running. The default is one hour.
 	CheckInterval time.Duration
 }{
 	CheckInterval: 1 * time.Hour,
+	Tag:           "main",
 }
 
 // UpdateAvailable is a channel that users can read from to get a signal for
@@ -45,7 +51,8 @@ var UpdateAvailable = make(chan bool, 1)
 // updating is attempted but fails, an error is returned. If no update is
 // available, Update simply returns (after making the HTTP request).
 func Update() (bool, error) {
-	idx, haveUpdate := checkNow(mainTag)
+	tag := guputil.ExpandTag(Config.Tag)
+	idx, haveUpdate := checkNow(tag)
 	if !haveUpdate {
 		return false, nil // no update available
 	}
@@ -67,13 +74,13 @@ func Update() (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		version, versionIndex := idx.Tags[mainTag].FindNextVersion(oldChecksum)
+		version, versionIndex := idx.Tags[tag].FindNextVersion(oldChecksum)
 		if version == nil {
 			break // at latest version
 		}
 
 		// Fetch the update file.
-		updateFile := guputil.UpdateFilename(mainTag, versionIndex)
+		updateFile := guputil.UpdateFilename(tag, versionIndex)
 		updateURL := strings.Replace(Config.UpdateURL, "$GUP", updateFile, -1)
 		resp, err := http.Get(updateURL)
 		if err != nil {
@@ -125,15 +132,16 @@ func Start() {
 	if Config.CheckInterval == time.Duration(0) {
 		return
 	}
+	tag := guputil.ExpandTag(Config.Tag)
 	go func() {
-		if _, update := checkNow(mainTag); update {
+		if _, update := checkNow(tag); update {
 			broadcastUpdate()
 		}
 		t := time.Tick(Config.CheckInterval)
 		for {
 			select {
 			case <-t:
-				if _, update := checkNow(mainTag); update {
+				if _, update := checkNow(tag); update {
 					broadcastUpdate()
 				}
 			}
@@ -213,8 +221,6 @@ func broadcastUpdate() {
 }
 
 var pub *ecdsa.PublicKey
-
-const mainTag = "main"
 
 type patcherFunc func(old io.Reader, new io.Writer, patch io.Reader) error
 
