@@ -179,11 +179,6 @@ flags:
 		tag := guputil.Tag(*bundleTag, *bundleOS, *bundleArch)
 		switch len(cmd.Args()) {
 		case 1:
-			// TODO(slimsag): optionally parametrize
-			if _, err := os.Stat("gup/index.json"); !os.IsNotExist(err) {
-				handleErr(errors.New("gup replace: may only omit [old.exe] when index.json doesn't exist"))
-			}
-
 			new, err := os.Open(cmd.Arg(0))
 			handleErr(err)
 			defer new.Close()
@@ -198,16 +193,29 @@ flags:
 
 			fmt.Println("wrote replacement patch bundle:", outFile)
 
-			index := &guputil.Index{
-				Tags: map[string]*guputil.IndexVersions{
-					tag: &guputil.IndexVersions{
-						List: []guputil.IndexVersion{{
-							From:        bundle.Checksum,
-							To:          bundle.Checksum,
-							Replacement: true,
-						}},
-					},
-				},
+			// Read from the existing index.json file, if it exists.
+			var index *guputil.Index
+			indexFile, err := os.Open("gup/index.json") // TODO(slimsag): optionally parametrize
+			if err != nil && !os.IsNotExist(err) {
+				handleErr(err)
+			}
+			if os.IsNotExist(err) {
+				index = &guputil.Index{}
+			} else {
+				err = json.NewDecoder(indexFile).Decode(&index)
+				handleErr(err)
+			}
+			indexFile.Close()
+
+			if _, hasTag := index.Tags[tag]; hasTag {
+				handleErr(errors.New("gup replace: may only omit [old.exe] when tag in index.json doesn't exist"))
+			}
+			index.Tags[tag] = &guputil.IndexVersions{
+				List: []guputil.IndexVersion{{
+					From:        bundle.Checksum,
+					To:          bundle.Checksum,
+					Replacement: true,
+				}},
 			}
 
 			indexData, err := json.MarshalIndent(index, "", "  ")
