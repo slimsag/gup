@@ -382,7 +382,12 @@ func UpdateFilename(tag string, versionIndex int) string {
 	return fmt.Sprintf("%s-%d.tgz", tag, versionIndex)
 }
 
+// Tag creates a tag given the user tag, GOOS, and GOARCH.
+func Tag(tag, goos, goarch string) string {
+	return fmt.Sprintf("%s-%s-%s", tag, goos, goarch)
+}
+
 // ExpandTag expands a tag for usage in an index.json file.
 func ExpandTag(tag string) string {
-	return fmt.Sprintf("%s-%s-%s", tag, build.Default.GOOS, build.Default.GOARCH)
+	return Tag(tag, build.Default.GOOS, build.Default.GOARCH)
 }

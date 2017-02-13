@@ -65,6 +65,12 @@ flags:
   -tag="main" specifies a tag to use for the bundle, e.g. "main", "beta",
               "alpha", "wow".
 
+  -os="" specifies the OS suffix to use for the bundle, e.g. "linux", "darwin",
+         "windows". Defaults to build.Default.GOOS
+
+  -arch="" specifies the arch suffix to use for the bundle, e.g. "amd64",
+           "i386", etc. Defaults to build.Default.GOARCH
+
   -replacement=false specifies whether or not to generate a full-binary
                      replacement bundle instead of a binary diff bundle. This
                      should be used if e.g. the entire binary has changed, or
@@ -75,6 +81,8 @@ flags:
 	bundleReplacement := commands["bundle"].Bool("replacement", false, "generate a full-binary replacement bundle instead of a binary diff")
 	bundlePrivateKey := commands["bundle"].String("private-key", "private_key.pem", "the private key file")
 	bundleTag := commands["bundle"].String("tag", "main", "tag to use for the bundle")
+	bundleOS := commands["bundle"].String("os", "", "os to use for the bundle")
+	bundleArch := commands["bundle"].String("arch", "", "arch to use for the bundle")
 
 	commands["patch"] = flag.NewFlagSet("gup patch", flag.ExitOnError)
 	commands["patch"].Usage = func() {
@@ -167,7 +175,8 @@ flags:
 			os.Exit(2)
 		}
 		key := parsePrivateKey(*bundlePrivateKey)
-		tag := guputil.ExpandTag(*bundleTag)
+
+		tag := guputil.Tag(*bundleTag, *bundleOS, *bundleArch)
 		switch len(cmd.Args()) {
 		case 1:
 			// TODO(slimsag): optionally parametrize
