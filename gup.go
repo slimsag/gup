@@ -172,7 +172,7 @@ var curVersionWarn sync.Once
 
 // CheckNow checks for updates immediately, and returns true if one is available.
 func CheckNow() bool {
-	_, u := checkNow(Config.Tag)
+	_, u := checkNow(guputil.ExpandTag(Config.Tag))
 	return u
 }
 
