@@ -207,6 +207,9 @@ flags:
 			}
 			indexFile.Close()
 
+			if index.Tags == nil {
+				index.Tags = make(map[string]*guputil.IndexVersions)
+			}
 			if _, hasTag := index.Tags[tag]; hasTag {
 				handleErr(errors.New("gup replace: may only omit [old.exe] when tag in index.json doesn't exist"))
 			}
