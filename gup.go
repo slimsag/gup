@@ -38,9 +38,14 @@ var Config = struct {
 	// program is running. Zero signals to not check for updates while the
 	// program is running. The default is one hour.
 	CheckInterval time.Duration
+
+	// Client is the HTTP client to use when fetching updates. By default, it
+	// has a 5s timeout.
+	Client *http.Client
 }{
 	CheckInterval: 1 * time.Hour,
 	Tag:           "main",
+	Client:        &http.Client{Timeout: 5 * time.Second},
 }
 
 // UpdateAvailable is a channel that users can read from to get a signal for
